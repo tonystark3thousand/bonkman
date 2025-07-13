@@ -1,14 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bonkman</title>
-    <style>
-        canvas { border: 1px solid black; }
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #000; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="gameCanvas" width="560" height="620"></canvas>
-    <script src="game.js"></script>
+    <h1>Bonkman</h1>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="info">
+            <p>Score: <span id="score">0</span></p>
+            <p>Level: <span id="level">1</span></p>
+        </div>
+    </div>
+    <script src="game.js" type="module"></script>
 </body>
 </html>
