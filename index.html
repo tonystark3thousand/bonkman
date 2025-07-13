@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bonkman</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Font for 80s style -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- NEW: Title with ID for styling -->
+    <h1 id="game-title">BONKMAN</h1>
+
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="info">
+            <p>Score: <span id="score">0</span></p>
+            <p>Level: <span id="level">1</span></p>
+
+            <!-- NEW: Clickable box linking to X profile -->
+            <a href="https://x.com/wagbonk" target="_blank" class="wagbonk-link">
+                <div class="wagbonk-box">
+                    Join WAGBONK
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- NEW: Pop-up modal for level announcements -->
+    <div id="level-popup" class="hidden">
+        <p>Level <span id="popup-level-number">1</span></p>
+    </div>
+
+    <!-- NEW: Audio elements, hidden from view -->
+    <audio id="eat-coin-sound" src="assets/eat_coin.mp3"></audio>
+    <audio id="death-sound" src="assets.death.mp3"></audio>
+    <audio id="powerup-sound" src="assets/powerup_sound.mp3"></audio>
+    <audio id="game-over-sound" src="assets/game_over.mp3"></audio>
+    <audio id="level-up-sound" src="assets/level_up.mp3"></audio>
+
+    <script src="game.js" type="module"></script>
+</body>
+</html>
