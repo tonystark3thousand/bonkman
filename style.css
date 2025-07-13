@@ -1,0 +1,88 @@
+body {
+    background-color: #000;
+    /* NEW: Background image */
+    background-image: url('assets/background.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: center;
+    
+    color: #fff;
+    font-family: 'Press Start 2P', cursive;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+/* NEW: 80s Style Title */
+#game-title {
+    color: #ff00ff; /* Magenta */
+    font-size: 4em;
+    text-transform: uppercase;
+    text-shadow: 
+        3px 3px 0px #00ffff, /* Cyan shadow */
+        -3px -3px 0px #ffff00; /* Yellow shadow */
+}
+
+.game-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+canvas {
+    background-color: #111;
+    border: 5px solid #ff0;
+    box-shadow: 0 0 20px #ff0; /* Glowing effect */
+}
+
+#info {
+    text-align: left;
+    font-size: 1.5em;
+    color: #fff;
+    text-shadow: 2px 2px 0 #000;
+}
+
+/* NEW: Style for the clickable WAGBONK box */
+.wagbonk-link {
+    text-decoration: none;
+}
+
+.wagbonk-box {
+    border: 3px solid #00ffff;
+    padding: 15px;
+    margin-top: 20px;
+    color: #fff;
+    background-color: rgba(255, 0, 255, 0.5); /* Semi-transparent magenta */
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.wagbonk-box:hover {
+    background-color: #ff00ff;
+    color: #000;
+    box-shadow: 0 0 15px #00ffff;
+}
+
+/* NEW: Styles for the level pop-up modal */
+#level-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #000;
+    border: 5px solid #ff00ff;
+    padding: 40px 80px;
+    font-size: 3em;
+    color: #fff;
+    text-shadow: 3px 3px 0px #00ffff;
+    z-index: 100;
+    transition: opacity 0.5s;
+}
+
+/* Utility class to hide elements */
+.hidden {
+    display: none;
+}
