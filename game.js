@@ -17,70 +17,44 @@ let lives = 3;
 let currentLevel = 0;
 let gameActive = true;
 
+// Classic Pacman-style level 1 layout (simplified)
+const baseLevel = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,1,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,0,1,0,0,1,1,1,1,0,0,1,1,1,1,0,0,1,0,0,1,1,1,1]
+].concat(Array(gridHeight-5).fill().map(() => Array(gridWidth).fill(1)));
+
 const levels = [
-    // Level 1: Simple layout
-    { layout: [
-        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-        [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
-        [1,0,1,1,1,0,1,1,1,0,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,0,1],
-        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    ].concat(Array(gridHeight-5).fill().map(() => Array(gridWidth).fill(1))), coinCount: 50 },
-    // Level 2: Added inner walls
-    { layout: [
-        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-        [1,0,0,0,0,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
-        [1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1],
-        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    ].concat(Array(gridHeight-5).fill().map(() => Array(gridWidth).fill(1))), coinCount: 60 },
-    // Levels 3-25: Randomized layouts with dead ends, tunnels, and hammer traps
+    { layout: baseLevel.map(row => [...row]), coinCount: 50 }, // Level 1
+    { layout: baseLevel.map(row => [...row]).map((row, i) => row.map((cell, j) => i === 2 && j > 5 && j < 10 ? 1 : cell)), coinCount: 60 }, // Level 2 with extra wall
     ...Array(23).fill().map((_, i) => {
         const levelNum = i + 3;
-        let layout = Array(gridHeight).fill().map(() => Array(gridWidth).fill(0));
-        // Outer walls
-        for (let y = 0; y < gridHeight; y++) {
-            layout[y][0] = layout[y][gridWidth - 1] = 1;
-        }
-        for (let x = 0; x < gridWidth; x++) {
-            layout[0][x] = layout[gridHeight - 1][x] = 1;
-        }
-        // Random walls and features
+        let layout = baseLevel.map(row => [...row]);
+        // Randomly add walls, tunnels, dead ends, traps
         for (let y = 1; y < gridHeight - 1; y++) {
             for (let x = 1; x < gridWidth - 1; x++) {
-                if (Math.random() < 0.3 + (levelNum - 3) * 0.01) {
-                    layout[y][x] = 1; // Increasing wall density
+                if (Math.random() < 0.3 + (levelNum - 3) * 0.01 && layout[y][x] === 0) {
+                    layout[y][x] = 1;
                 }
             }
         }
-        // Tunnels (horizontal paths)
-        if (levelNum % 3 === 0) {
+        if (levelNum % 3 === 0) { // Tunnels
             const tunnelY = Math.floor(gridHeight / 2) + (levelNum % 5 - 2);
-            for (let x = 2; x < gridWidth - 2; x++) {
-                layout[tunnelY][x] = 0;
-                if (Math.random() < 0.2) layout[tunnelY][x] = 1; // Occasional breaks
-            }
+            for (let x = 2; x < gridWidth - 2; x++) layout[tunnelY][x] = 0;
         }
-        // Dead ends (vertical stubs)
-        if (levelNum % 4 === 0) {
+        if (levelNum % 4 === 0) { // Dead ends
             const deadEndX = Math.floor(gridWidth / 4) * (levelNum % 4);
-            for (let y = 2; y < gridHeight - 2; y++) {
-                if (Math.random() < 0.5) layout[y][deadEndX] = 1;
-            }
+            for (let y = 2; y < gridHeight - 2; y++) if (Math.random() < 0.5) layout[y][deadEndX] = 1;
         }
-        // Hammer traps (small enclosed areas)
-        if (levelNum % 5 === 0) {
+        if (levelNum % 5 === 0) { // Hammer traps
             const trapX = Math.floor(gridWidth * 0.75);
             const trapY = Math.floor(gridHeight / 3);
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    if (dx === 0 || dy === 0) layout[trapY + dy][trapX + dx] = 1;
-                }
-            }
-            layout[trapY][trapX] = 0; // Trap center open
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx === 0 || dy === 0) layout[trapY + dy][trapX + dx] = 1;
+            layout[trapY][trapX] = 0;
         }
-        // Ensure path to bonkman start
-        layout[1][1] = 0;
+        layout[1][1] = 0; // Ensure start is open
         return { layout: layout, coinCount: 70 + (levelNum - 3) * 10 };
     })
 ];
@@ -110,8 +84,9 @@ function initLevel() {
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#0000FF';
+    ctx.fillStyle = '#000000'; // Black background for retro style
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0000FF'; // Blue walls
     for (let y = 0; y < gridHeight; y++) {
         for (let x = 0; x < gridWidth; x++) {
             if (gameBoard[y][x] === 1) {
@@ -119,21 +94,20 @@ function draw() {
             }
         }
     }
-    ctx.fillStyle = '#FFD700';
+    ctx.fillStyle = '#FFD700'; // Gold coins
     coins.forEach(coin => {
         ctx.beginPath();
         ctx.arc((coin.x + 0.5) * tileSize, (coin.y + 0.5) * tileSize, tileSize / 4, 0, Math.PI * 2);
         ctx.fill();
     });
-    // Use bonkdog.png for Bonkman
     const bonkdogImg = new Image();
     bonkdogImg.src = 'bonkdog.png';
     bonkdogImg.onload = () => {
         ctx.drawImage(bonkdogImg, bonkman.x * tileSize, bonkman.y * tileSize, tileSize, tileSize);
     };
     bonkdogImg.onerror = () => {
-        console.error("Failed to load bonkdog.png, using default circle");
-        ctx.fillStyle = '#FFFF00';
+        console.error("Failed to load bonkdog.png, using default");
+        ctx.fillStyle = '#FFFF00'; // Yellow fallback
         ctx.beginPath();
         ctx.arc((bonkman.x + 0.5) * tileSize, (bonkman.y + 0.5) * tileSize, tileSize / 2, 0, Math.PI * 2);
         ctx.fill();
