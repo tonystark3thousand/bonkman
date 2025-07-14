@@ -1,309 +1,206 @@
-// ==================================================================
-// GAME SETUP
-// ==================================================================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
-const levelEl = document.getElementById('level');
-const levelPopup = document.getElementById('level-popup');
-const popupLevelNumberEl = document.getElementById('popup-level-number');
 
-const sounds = {
-    eatCoin: document.getElementById('eat-coin-sound'),
-    death: document.getElementById('death-sound'),
-    powerup: document.getElementById('powerup-sound'),
-    gameOver: document.getElementById('game-over-sound'),
-    levelUp: document.getElementById('level-up-sound')
-};
-
-const TILE_SIZE = 20;
-let currentLevel = 1;
-let score = 0;
-let isGamePaused = true;
-
-const images = {
-    bonkman: new Image(),
-    malletRed: new Image(),
-    malletBlue: new Image(),
-    malletGreen: new Image(),
-    coin: new Image(),
-    powerUp: new Image(),
-    malletFrightened: new Image()
-};
-
-// ==================================================================
-// LEVEL DATA & GAME STATE
-// ==================================================================
-const levels = [
-    [
-        "####################", "#P C  C  #  C  C U#", "# C ## C # C ## C #", "#  C  C  C  C  C  #", "####################",
-        "#  C ## C # C ## C  #", "# C  C  C C C  C C #", "#  C  C  #  C  C  #", "# C  C  C C C  C C #",
-        "#  C ## C # C ## C  #", "####################", "#  C  C  C  C  C  #", "# C ## C # C ## C #",
-        "#U C  C  #  C  C P#", "####################",
-    ],
-    [
-        "####################", "#PUC  C   C  C  C U#", "# C# # #C# # C# # #C#", "#  C  C  #  C  C   #",
-        "##### ##   ## #####", "#   C  C# #C  C   #", "# C# #C  C  C# # C#", "#U C# #     # #C  #",
-        "# C# #C  C  C# # C#", "#   C  C# #C  C   #", "##### ##   ## #####", "#  C  C  #  C  C   #",
-        "# C# # #C# # C# # #C#", "#PUC  C   C  C  C U#", "####################",
-    ],
+const tileSize = 20;
+const gridWidth = 28;
+const gridHeight = 31;
+let gameBoard = [];
+let bonkman = { x: 1 * tileSize, y: 1 * tileSize, dx: 0, dy: 0, speed: tileSize, width: tileSize, height: tileSize };
+let hammers = [
+    { x: 26 * tileSize, y: 1 * tileSize, color: 'red', width: tileSize, height: tileSize, chase: true },
+    { x: 26 * tileSize, y: 2 * tileSize, color: 'blue', width: tileSize, height: tileSize, chase: true },
+    { x: 26 * tileSize, y: 3 * tileSize, color: 'green', width: tileSize, height: tileSize, chase: true }
 ];
-let map = [];
-let bonkman;
-let enemies = [];
 let coins = [];
-let powerUps = [];
+let score = 0;
+let lives = 3;
+let currentLevel = 0;
+let gameActive = true;
 
-let chaseScatterTimer = 0;
-const chaseDuration = 20 * 1000;
-const scatterDuration = 7 * 1000;
-
-// ==================================================================
-// GAME CLASSES
-// ==================================================================
-class Player {
-    constructor(x, y) { this.x = x; this.y = y; this.direction = { x: 0, y: 0 }; this.lastDirection = { x: 1, y: 0 }; }
-    draw() { ctx.drawImage(images.bonkman, this.x * TILE_SIZE, this.y * TILE_SIZE, TILE_SIZE, TILE_SIZE); }
-    move() {
-        const nextX = this.x + this.direction.x;
-        const nextY = this.y + this.direction.y;
-        if (map[nextY] && map[nextY][nextX] !== '#') {
-            this.x = nextX;
-            this.y = nextY;
-            if (this.direction.x !== 0 || this.direction.y !== 0) {
-                this.lastDirection = this.direction;
+const levels = [
+    // Level 1: Classic Pacman-style maze
+    { layout: [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,0,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,0,1,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1,0,0,1,1,1,1]
+    ].concat(Array(gridHeight-5).fill().map(() => Array(gridWidth).fill(1))), coinCount: 50 },
+    // Level 2: Added complexity
+    { layout: [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,0,1,0,0,1,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,1,1,1]
+    ].concat(Array(gridHeight-5).fill().map(() => Array(gridWidth).fill(1))), coinCount: 60 },
+    // Levels 3-25: Unique boards with features
+    ...Array(23).fill().map((_, i) => {
+        const levelNum = i + 3;
+        let layout = levels[0].layout.map(row => [...row]); // Start with Level 1 base
+        // Random wall additions
+        for (let y = 1; y < gridHeight - 1; y++) {
+            for (let x = 1; x < gridWidth - 1; x++) {
+                if (layout[y][x] === 0 && Math.random() < 0.3 + (levelNum - 3) * 0.01) {
+                    layout[y][x] = 1;
+                }
             }
         }
-    }
-}
-
-class Enemy {
-    constructor(x, y, color, scatterTarget) {
-        this.x = x; this.y = y; this.startX = x; this.startY = y;
-        this.color = color; this.state = 'scatter'; this.direction = { x: -1, y: 0 };
-        this.targetTile = { x: scatterTarget.x, y: scatterTarget.y }; this.scatterTarget = scatterTarget;
-        this.frightenedTimer = 0;
-    }
-    getImage() {
-        if (this.state === 'frightened') {
-            return this.frightenedTimer < 3000 && Math.floor(this.frightenedTimer / 250) % 2 === 0 ? images.malletBlue : images.malletFrightened;
+        // Tunnels (every 3 levels)
+        if (levelNum % 3 === 0) {
+            const tunnelY = Math.floor(gridHeight / 2) + (levelNum % 5 - 2);
+            for (let x = 2; x < gridWidth - 2; x++) layout[tunnelY][x] = 0;
         }
-        if (this.state === 'eaten') return null;
-        return images[`mallet${this.color.charAt(0).toUpperCase() + this.color.slice(1)}`];
-    }
-    draw() {
-        const img = this.getImage();
-        if (img) { ctx.drawImage(img, this.x * TILE_SIZE, this.y * TILE_SIZE, TILE_SIZE, TILE_SIZE); }
-    }
-    move() {
-        const possibleMoves = [];
-        const { x, y } = this;
-        const directions = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
-        directions.forEach(dir => {
-            if (dir.x !== -this.direction.x || dir.y !== -this.direction.y) {
-                 if (map[y + dir.y] && map[y + dir.y][x + dir.x] !== '#') { possibleMoves.push(dir); }
-            }
-        });
-        if (possibleMoves.length === 0) {
-            if (map[y - this.direction.y] && map[y - this.direction.y][x - this.direction.x] !== '#') {
-                 this.direction = { x: -this.direction.x, y: -this.direction.y };
-            } else { return; }
+        // Dead ends (every 4 levels)
+        if (levelNum % 4 === 0) {
+            const deadEndX = Math.floor(gridWidth / 4) * (levelNum % 4 + 1);
+            for (let y = 2; y < gridHeight - 2; y++) if (Math.random() < 0.6) layout[y][deadEndX] = 1;
         }
-        let bestMove = possibleMoves[0];
-        let minDistance = Infinity;
-        possibleMoves.forEach(move => {
-            const newX = x + move.x;
-            const newY = y + move.y;
-            const distance = Math.hypot(newX - this.targetTile.x, newY - this.targetTile.y);
-            if (distance < minDistance) { minDistance = distance; bestMove = move; }
-        });
-        this.direction = bestMove;
-        this.x += this.direction.x;
-        this.y += this.direction.y;
-    }
-}
+        // Hammer traps (every 5 levels)
+        if (levelNum % 5 === 0) {
+            const trapX = Math.floor(gridWidth * 0.75);
+            const trapY = Math.floor(gridHeight / 3);
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx === 0 || dy === 0) layout[trapY + dy][trapX + dx] = 1;
+            layout[trapY][trapX] = 0;
+        }
+        layout[1][1] = 0; // Ensure start is open
+        return { layout: layout, coinCount: 70 + (levelNum - 3) * 10 };
+    })
+];
 
-class Coin {
-    constructor(x, y) { this.x = x; this.y = y; }
-    draw() { ctx.drawImage(images.coin, this.x * TILE_SIZE, this.y * TILE_SIZE, TILE_SIZE, TILE_SIZE); }
-}
-
-class PowerUp {
-    constructor(x, y) { this.x = x; this.y = y; }
-    draw() { ctx.drawImage(images.powerUp, this.x * TILE_SIZE, this.y * TILE_SIZE, TILE_SIZE, TILE_SIZE); }
-}
-
-// ==================================================================
-// GAME LOGIC
-// ==================================================================
-function playSound(sound) { sound.currentTime = 0; sound.play().catch(e => console.error("Audio play failed:", e)); }
-
-function loadLevel(levelNumber) {
-    const levelData = levels[levelNumber - 1];
-    map = levelData.map(row => row.split(''));
-    canvas.width = map[0].length * TILE_SIZE;
-    canvas.height = map.length * TILE_SIZE;
-    coins = []; powerUps = []; enemies = [];
-    let playerSpawns = [];
-    for (let y = 0; y < map.length; y++) {
-        for (let x = 0; x < map[y].length; x++) {
-            const char = map[y][x];
-            if (char === 'P') playerSpawns.push({ x, y });
-            else if (char === 'C') coins.push(new Coin(x, y));
-            else if (char === 'U') powerUps.push(new PowerUp(x, y));
+function initLevel() {
+    const level = levels[currentLevel];
+    gameBoard = level.layout.map(row => [...row]);
+    coins = gameBoard.flatMap((row, y) => row.map((cell, x) => cell === 2 ? { x, y } : null)).filter(c => c);
+    if (coins.length < level.coinCount) {
+        for (let i = coins.length; i < level.coinCount; i++) {
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * (gridWidth - 2)) + 1;
+                y = Math.floor(Math.random * (gridHeight - 2)) + 1;
+            } while (gameBoard[y][x] !== 0 || (x === bonkman.x / tileSize && y === bonkman.y / tileSize));
+            coins.push({ x, y });
+            gameBoard[y][x] = 2;
         }
     }
-    bonkman = new Player(playerSpawns[0].x, playerSpawns[0].y);
-    const enemySpawns = [
-        { x: 9, y: 7, color: 'red', scatter: { x: 18, y: 1 } },
-        { x: 10, y: 7, color: 'blue', scatter: { x: 1, y: 1 } },
-        { x: 11, y: 7, color: 'green', scatter: { x: 1, y: 13 } }
-    ];
-    if (levelNumber >= 1) enemies.push(new Enemy(enemySpawns[0].x, enemySpawns[0].y, enemySpawns[0].color, enemySpawns[0].scatter));
-    if (levelNumber >= 2) enemies.push(new Enemy(enemySpawns[1].x, enemySpawns[1].y, enemySpawns[1].color, enemySpawns[1].scatter));
-    if (levelNumber >= 3) enemies.push(new Enemy(enemySpawns[2].x, enemySpawns[2].y, enemySpawns[2].color, enemySpawns[2].scatter));
-    levelEl.textContent = currentLevel;
-    scoreEl.textContent = score;
-}
-
-function updateEnemyAI(enemy) {
-    if (enemy.state === 'eaten') {
-        enemy.targetTile = { x: enemy.startX, y: enemy.startY };
-        if (enemy.x === enemy.startX && enemy.y === enemy.startY) { enemy.state = 'chase'; }
-        return;
-    }
-    if (enemy.state === 'frightened') {
-        enemy.targetTile = { x: Math.floor(Math.random() * map[0].length), y: Math.floor(Math.random() * map.length) };
-        return;
-    }
-    if (enemy.state === 'scatter') { enemy.targetTile = enemy.scatterTarget; return; }
-    switch (enemy.color) {
-        case 'red': enemy.targetTile = { x: bonkman.x, y: bonkman.y }; break;
-        case 'blue': enemy.targetTile = { x: bonkman.x + (bonkman.lastDirection.x * 4), y: bonkman.y + (bonkman.lastDirection.y * 4) }; break;
-        case 'green':
-            const distance = Math.hypot(bonkman.x - enemy.x, bonkman.y - enemy.y);
-            enemy.targetTile = distance > 8 ? { x: bonkman.x, y: bonkman.y } : enemy.scatterTarget;
-            break;
-    }
-}
-
-function update() {
-    if (isGamePaused) return;
-    bonkman.move();
-    chaseScatterTimer += 16;
-    let currentMode = enemies.length > 0 ? enemies[0].state : 'chase';
-    if (currentMode !== 'frightened' && currentMode !== 'eaten') {
-        if (currentMode === 'chase' && chaseScatterTimer >= chaseDuration) {
-            chaseScatterTimer = 0;
-            enemies.forEach(e => { if (e.state === 'chase') e.state = 'scatter' });
-        } else if (currentMode === 'scatter' && chaseScatterTimer >= scatterDuration) {
-            chaseScatterTimer = 0;
-            enemies.forEach(e => { if (e.state === 'scatter') e.state = 'chase' });
-        }
-    }
-    enemies.forEach(enemy => {
-        if (enemy.state === 'frightened') {
-            enemy.frightenedTimer -= 16;
-            if (enemy.frightenedTimer <= 0) { enemy.state = 'chase'; }
-        }
-        updateEnemyAI(enemy);
-        enemy.move();
-    });
-    coins = coins.filter(coin => {
-        if (coin.x === bonkman.x && coin.y === bonkman.y) { score += 10; playSound(sounds.eatCoin); return false; }
-        return true;
-    });
-    powerUps = powerUps.filter(powerUp => {
-        if (powerUp.x === bonkman.x && powerUp.y === bonkman.y) {
-            score += 50; playSound(sounds.powerup);
-            enemies.forEach(enemy => { if (enemy.state !== 'eaten') { enemy.state = 'frightened'; enemy.frightenedTimer = 8000; } });
-            return false;
-        }
-        return true;
-    });
-    enemies.forEach(enemy => {
-        if (enemy.x === bonkman.x && enemy.y === bonkman.y) {
-            if (enemy.state === 'frightened') { score += 200; enemy.state = 'eaten'; }
-            else if (enemy.state !== 'eaten') { playSound(sounds.death); handleGameOver(); }
-        }
-    });
-    if (coins.length === 0) {
-        currentLevel++;
-        if (currentLevel > levels.length) { alert('You Win!'); resetGame(); }
-        else { playSound(sounds.levelUp); loadLevel(currentLevel); showLevelPopup(); }
-    }
-    scoreEl.textContent = score;
+    hammers.forEach(h => { h.chase = Math.random() > 0.3; }); // 70% chase, 30% idle
+    bonkman.x = 1 * tileSize;
+    bonkman.y = 1 * tileSize;
+    bonkman.dx = 0;
+    bonkman.dy = 0;
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let y = 0; y < map.length; y++) {
-        for (let x = 0; x < map[y].length; x++) {
-            if (map[y][x] === '#') { ctx.fillStyle = '#0000FF'; ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); }
+    ctx.fillStyle = '#000000'; // Black background
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0000FF'; // Blue walls
+    for (let y = 0; y < gridHeight; y++) {
+        for (let x = 0; x < gridWidth; x++) {
+            if (gameBoard[y][x] === 1) {
+                ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+            }
         }
     }
-    coins.forEach(coin => coin.draw());
-    powerUps.forEach(powerUp => powerUp.draw());
-    bonkman.draw();
-    enemies.forEach(enemy => enemy.draw());
-}
-
-function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
-function handleGameOver() { isGamePaused = true; playSound(sounds.gameOver); alert('Game Over!'); resetGame(); }
-function resetGame() { currentLevel = 1; score = 0; loadLevel(currentLevel); showLevelPopup(); }
-function showLevelPopup() {
-    isGamePaused = true;
-    popupLevelNumberEl.textContent = currentLevel;
-    levelPopup.classList.remove('hidden');
-    setTimeout(() => { levelPopup.classList.add('hidden'); isGamePaused = false; chaseScatterTimer = 0; }, 2500);
-}
-
-window.addEventListener('keydown', (e) => {
-    if (isGamePaused) return;
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) { e.preventDefault(); }
-    if (e.key === 'ArrowUp') bonkman.direction = { x: 0, y: -1 };
-    else if (e.key === 'ArrowDown') bonkman.direction = { x: 0, y: 1 };
-    else if (e.key === 'ArrowLeft') bonkman.direction = { x: -1, y: 0 };
-    else if (e.key === 'ArrowRight') bonkman.direction = { x: 1, y: 0 };
-});
-
-// ==================================================================
-// INITIALIZATION AND PRELOADER
-// ==================================================================
-function preloadAssets() {
-    const assetPromises = [];
-    const imagesToLoad = [
-        { img: images.bonkman, src: 'assets/bonkman.png' }, { img: images.malletRed, src: 'assets/mallet_red.png' },
-        { img: images.malletBlue, src: 'assets/mallet_blue.png' }, { img: images.malletGreen, src: 'assets/mallet_green.png' },
-        { img: images.coin, src: 'assets/coin.png' }, { img: images.powerUp, src: 'assets/powerup.png' },
-        // THE FIX IS HERE: Added a comma after the previous line
-        { img: images.malletFrightened, src: 'assets/mallet_frightened.png' }
-    ];
-    imagesToLoad.forEach(item => {
-        assetPromises.push(new Promise((resolve, reject) => {
-            item.img.src = item.src;
-            item.img.onload = resolve;
-            item.img.onerror = () => reject(`${item.src} failed to load.`);
-        }));
+    ctx.fillStyle = '#FFD700'; // Gold coins
+    coins.forEach(coin => {
+        ctx.beginPath();
+        ctx.arc((coin.x + 0.5) * tileSize, (coin.y + 0.5) * tileSize, tileSize / 4, 0, Math.PI * 2);
+        ctx.fill();
     });
-    return Promise.all(assetPromises);
+    const bonkdogImg = new Image();
+    bonkdogImg.src = 'bonkdog.png';
+    bonkdogImg.onload = () => {
+        ctx.drawImage(bonkdogImg, bonkman.x, bonkman.y, tileSize, tileSize);
+    };
+    bonkdogImg.onerror = () => {
+        console.error("Failed to load bonkdog.png, using default");
+        ctx.fillStyle = '#FFFF00'; // Yellow fallback
+        ctx.beginPath();
+        ctx.arc(bonkman.x / tileSize + 0.5, bonkman.y / tileSize + 0.5, tileSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+    };
+    hammers.forEach(hammer => {
+        ctx.fillStyle = hammer.color;
+        ctx.fillRect(hammer.x, hammer.y, tileSize, tileSize);
+    });
 }
 
-async function main() {
-    ctx.fillStyle = 'white';
-    ctx.font = '20px "Press Start 2P"';
-    ctx.textAlign = 'center';
-    ctx.fillText('Loading...', 200, 150);
-
-    try {
-        await preloadAssets();
-        loadLevel(currentLevel);
-        showLevelPopup();
-        requestAnimationFrame(gameLoop);
-    } catch (error) {
-        console.error("Failed to start game:", error);
-        alert(`Error starting game: ${error}`);
+function moveBonkman() {
+    let newX = bonkman.x + bonkman.dx;
+    let newY = bonkman.y + bonkman.dy;
+    const gridX = Math.floor(newX / tileSize);
+    const gridY = Math.floor(newY / tileSize);
+    if (newX >= 0 && newX < canvas.width - tileSize && newY >= 0 && newY < canvas.height - tileSize && gameBoard[gridY][gridX] !== 1) {
+        bonkman.x = newX;
+        bonkman.y = newY;
+        if (Math.abs(bonkman.x % tileSize) < 1 && Math.abs(bonkman.y % tileSize) < 1) {
+            bonkman.dx = 0;
+            bonkman.dy = 0;
+            const coinIndex = coins.findIndex(coin => Math.floor(coin.x) === gridX && Math.floor(coin.y) === gridY);
+            if (coinIndex !== -1) {
+                coins.splice(coinIndex, 1);
+                score += 10;
+                if (coins.length === 0 && currentLevel < 24) {
+                    currentLevel++;
+                    initLevel();
+                } else if (coins.length === 0) {
+                    gameActive = false;
+                    alert('You won all 25 levels!');
+                }
+            }
+        }
     }
 }
 
-main();
+function moveHammers() {
+    hammers.forEach(hammer => {
+        if (hammer.chase) {
+            let dx = 0, dy = 0;
+            const targetX = bonkman.x / tileSize;
+            const targetY = bonkman.y / tileSize;
+            const hammerX = hammer.x / tileSize;
+            const hammerY = hammer.y / tileSize;
+            if (Math.abs(targetX - hammerX) > Math.abs(targetY - hammerY)) {
+                dx = targetX > hammerX ? 1 : -1;
+            } else {
+                dy = targetY > hammerY ? 1 : -1;
+            }
+            const newX = hammer.x + dx * tileSize;
+            const newY = hammer.y + dy * tileSize;
+            const gridX = Math.floor(newX / tileSize);
+            const gridY = Math.floor(newY / tileSize);
+            if (newX >= 0 && newX < canvas.width - tileSize && newY >= 0 && newY < canvas.height - tileSize && gameBoard[gridY][gridX] !== 1) {
+                hammer.x = newX;
+                hammer.y = newY;
+            }
+        }
+        if (Math.floor(hammer.x / tileSize) === Math.floor(bonkman.x / tileSize) && Math.floor(hammer.y / tileSize) === Math.floor(bonkman.y / tileSize)) {
+            lives--;
+            bonkman.x = 1 * tileSize;
+            bonkman.y = 1 * tileSize;
+            if (lives <= 0) {
+                gameActive = false;
+                alert('Game Over! Score: ' + score);
+            }
+        }
+    });
+}
+
+document.addEventListener('keydown', e => {
+    if (!gameActive) return;
+    if (e.key === 'ArrowUp' && bonkman.dy === 0) { bonkman.dx = 0; bonkman.dy = -bonkman.speed; }
+    else if (e.key === 'ArrowDown' && bonkman.dy === 0) { bonkman.dx = 0; bonkman.dy = bonkman.speed; }
+    else if (e.key === 'ArrowLeft' && bonkman.dx === 0) { bonkman.dx = -bonkman.speed; bonkman.dy = 0; }
+    else if (e.key === 'ArrowRight' && bonkman.dx === 0) { bonkman.dx = bonkman.speed; bonkman.dy = 0; }
+});
+
+function gameLoop() {
+    if (!gameActive) return;
+    moveBonkman();
+    moveHammers();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+initLevel();
+gameLoop();
