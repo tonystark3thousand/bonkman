@@ -7,9 +7,9 @@ const gridHeight = 31;
 let gameBoard = [];
 let bonkman = { x: 1 * tileSize, y: 1 * tileSize, dx: 0, dy: 0, speed: tileSize, width: tileSize, height: tileSize };
 let hammers = [
-    { x: 26 * tileSize, y: 1 * tileSize, color: 'red', width: tileSize, height: tileSize, chase: true },
-    { x: 26 * tileSize, y: 2 * tileSize, color: 'blue', width: tileSize, height: tileSize, chase: true },
-    { x: 26 * tileSize, y: 3 * tileSize, color: 'green', width: tileSize, height: tileSize, chase: true }
+    { x: 26 * tileSize, y: 5 * tileSize, color: 'red', width: tileSize, height: tileSize, chase: true },
+    { x: 26 * tileSize, y: 6 * tileSize, color: 'blue', width: tileSize, height: tileSize, chase: true },
+    { x: 26 * tileSize, y: 7 * tileSize, color: 'green', width: tileSize, height: tileSize, chase: true }
 ];
 let coins = [];
 let score = 0;
@@ -17,17 +17,20 @@ let lives = 3;
 let currentLevel = 0;
 let gameActive = true;
 
-// Base layout for Pacman-style maze
+// Base layout for full Pacman-style maze
 const baseLayout = Array(gridHeight).fill().map(() => Array(gridWidth).fill(0));
 for (let y = 0; y < gridHeight; y++) {
     baseLayout[y][0] = baseLayout[y][gridWidth - 1] = 1;
     if (y === 0 || y === gridHeight - 1) baseLayout[y].fill(1);
 }
-baseLayout[1][1] = 0; // Start position
-baseLayout[2] = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1];
-baseLayout[3] = [1,0,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,0,1,0,1];
-baseLayout[4] = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1];
-baseLayout[5] = [1,1,1,1,0,1,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1,0,0,1,1,1,1];
+baseLayout[1] = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1];
+baseLayout[2] = [1,0,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,0,1,0,1];
+baseLayout[3] = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1];
+baseLayout[4] = [1,1,1,1,0,1,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1,0,0,1,1,1,1];
+baseLayout[5] = [1,0,0,0,0,0,1,0,0,0,1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,1];
+baseLayout[6] = [1,0,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,0,1,1];
+baseLayout[7] = [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1];
+baseLayout[8] = [1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,0,1];
 
 const levels = [
     { layout: baseLayout.map(row => [...row]), coinCount: 50 }, // Level 1
@@ -85,6 +88,7 @@ function initLevel() {
     bonkman.y = 1 * tileSize;
     bonkman.dx = 0;
     bonkman.dy = 0;
+    lives = 3; // Reset lives on level init to prevent immediate Game Over
 }
 
 function draw() {
@@ -105,12 +109,12 @@ function draw() {
         ctx.fill();
     });
     const bonkdogImg = new Image();
-    bonkdogImg.src = 'bonkdog.png'; // Ensure case matches uploaded file
+    bonkdogImg.src = 'assets/bonkdog.png'; // Updated path to assets folder
     bonkdogImg.onload = () => {
         ctx.drawImage(bonkdogImg, bonkman.x, bonkman.y, tileSize, tileSize);
     };
     bonkdogImg.onerror = () => {
-        console.error("Failed to load bonkdog.png - check file name and upload");
+        console.error("Failed to load assets/bonkdog.png - verify file name and upload to assets folder");
         ctx.fillStyle = '#FFFF00'; // Yellow fallback
         ctx.beginPath();
         ctx.arc(bonkman.x / tileSize + 0.5, bonkman.y / tileSize + 0.5, tileSize / 2, 0, Math.PI * 2);
@@ -175,6 +179,8 @@ function moveHammers() {
             lives--;
             bonkman.x = 1 * tileSize;
             bonkman.y = 1 * tileSize;
+            bonkman.dx = 0;
+            bonkman.dy = 0;
             if (lives <= 0) {
                 gameActive = false;
                 alert('Game Over! Score: ' + score);
