@@ -18,20 +18,23 @@ let currentLevel = 0;
 let gameActive = true;
 
 // Base layout for Pacman-style maze
-const baseLayout = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,1,1,1,0,1,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1,0,0,1,1,1,1]
-].concat(Array(gridHeight-5).fill().map(() => Array(gridWidth).fill(1)));
+const baseLayout = Array(gridHeight).fill().map(() => Array(gridWidth).fill(0));
+for (let y = 0; y < gridHeight; y++) {
+    baseLayout[y][0] = baseLayout[y][gridWidth - 1] = 1;
+    if (y === 0 || y === gridHeight - 1) baseLayout[y].fill(1);
+}
+baseLayout[1][1] = 0; // Start position
+baseLayout[2] = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1];
+baseLayout[3] = [1,0,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,0,1,0,1];
+baseLayout[4] = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1];
+baseLayout[5] = [1,1,1,1,0,1,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1,0,0,1,1,1,1];
 
 const levels = [
     { layout: baseLayout.map(row => [...row]), coinCount: 50 }, // Level 1
-    { layout: baseLayout.map(row => [...row]).map((row, i) => row.map((cell, j) => i === 2 && j > 5 && j < 10 ? 1 : cell)), coinCount: 60 }, // Level 2
+    { layout: baseLayout.map(row => [...row]).map((row, i) => i === 2 ? row.map((cell, j) => j > 5 && j < 10 ? 1 : cell) : row), coinCount: 60 }, // Level 2
     ...Array(23).fill().map((_, i) => {
         const levelNum = i + 3;
-        let layout = baseLayout.map(row => [...row]); // Use a copy of baseLayout
+        let layout = baseLayout.map(row => [...row]);
         // Random wall additions
         for (let y = 1; y < gridHeight - 1; y++) {
             for (let x = 1; x < gridWidth - 1; x++) {
@@ -102,12 +105,12 @@ function draw() {
         ctx.fill();
     });
     const bonkdogImg = new Image();
-    bonkdogImg.src = 'bonkdog.png';
+    bonkdogImg.src = 'bonkdog.png'; // Ensure case matches uploaded file
     bonkdogImg.onload = () => {
         ctx.drawImage(bonkdogImg, bonkman.x, bonkman.y, tileSize, tileSize);
     };
     bonkdogImg.onerror = () => {
-        console.error("Failed to load bonkdog.png");
+        console.error("Failed to load bonkdog.png - check file name and upload");
         ctx.fillStyle = '#FFFF00'; // Yellow fallback
         ctx.beginPath();
         ctx.arc(bonkman.x / tileSize + 0.5, bonkman.y / tileSize + 0.5, tileSize / 2, 0, Math.PI * 2);
